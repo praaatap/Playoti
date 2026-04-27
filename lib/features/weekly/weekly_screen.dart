@@ -252,26 +252,199 @@ class _TaskChip extends StatelessWidget {
   }
 }
 
-class _DayTasksList extends StatelessWidget {
+class _DayTasksList extends ConsumerStatefulWidget {
   final DateTime day;
   final List<Task> tasks;
   const _DayTasksList({required this.day, required this.tasks});
 
   @override
+  ConsumerState<_DayTasksList> createState() => _DayTasksListState();
+}
+
+class _DayTasksListState extends ConsumerState<_DayTasksList> {
+  String? _expandedTaskId;
+  bool _isSelectionMode = false;
+  final Set<String> _selectedIds = {};
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _isSelectionMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelection() => setState(() {
+        _isSelectionMode = false;
+        _selectedIds.clear();
+      });
+
+  void _completeSelected() {
+    for (final id in _selectedIds) {
+      ref.read(taskNotifierProvider.notifier).toggleComplete(id);
+    }
+    _exitSelection();
+  }
+
+  void _deleteSelected() {
+    for (final id in _selectedIds) {
+      ref.read(taskNotifierProvider.notifier).deleteTask(id);
+    }
+    _exitSelection();
+  }
+
+  void _moveSelectedToTomorrow() {
+    for (final id in _selectedIds) {
+      ref.read(taskNotifierProvider.notifier).pushTaskToTomorrow(id);
+    }
+    _exitSelection();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (tasks.isEmpty) {
+    if (widget.tasks.isEmpty) {
       return EmptyState(
         icon: Icons.event_available_rounded,
-        title: 'No tasks on ${day.formattedShortWeekday}, ${day.formattedShortDate}',
+        title:
+            'No tasks on ${widget.day.formattedShortWeekday}, ${widget.day.formattedShortDate}',
         subtitle: 'Tap + to add a task',
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: tasks.length,
-      itemBuilder: (_, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: TaskTile(task: tasks[i]),
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _isSelectionMode) _exitSelection();
+      },
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: widget.tasks.length,
+              itemBuilder: (_, i) {
+                final task = widget.tasks[i];
+                final isExpanded = _expandedTaskId == task.id;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TaskTile(
+                    task: task,
+                    isExpanded: isExpanded,
+                    isSelectionMode: _isSelectionMode,
+                    isSelected: _selectedIds.contains(task.id),
+                    onTap: _isSelectionMode
+                        ? () => _toggleSelection(task.id)
+                        : () => setState(() {
+                              _expandedTaskId =
+                                  isExpanded ? null : task.id;
+                            }),
+                    onLongPress: !_isSelectionMode
+                        ? () => setState(() {
+                              _isSelectionMode = true;
+                              _selectedIds.add(task.id);
+                            })
+                        : null,
+                    onSelectionToggle: () => _toggleSelection(task.id),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (_isSelectionMode)
+            _WeeklyBatchBar(
+              selectedCount: _selectedIds.length,
+              onComplete: _completeSelected,
+              onDelete: _deleteSelected,
+              onTomorrow: _moveSelectedToTomorrow,
+              onCancel: _exitSelection,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyBatchBar extends StatelessWidget {
+  final int selectedCount;
+  final VoidCallback onComplete;
+  final VoidCallback onDelete;
+  final VoidCallback onTomorrow;
+  final VoidCallback onCancel;
+
+  const _WeeklyBatchBar({
+    required this.selectedCount,
+    required this.onComplete,
+    required this.onDelete,
+    required this.onTomorrow,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: const Border(top: BorderSide(color: AppColors.divider)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Text('$selectedCount selected',
+              style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
+          const Spacer(),
+          TextButton(
+            onPressed: onComplete,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.success,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Complete',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: onTomorrow,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Tomorrow',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: onDelete,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Delete',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, size: 20),
+            color: AppColors.textSecondary,
+            onPressed: onCancel,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ),
     );
   }

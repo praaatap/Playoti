@@ -36,6 +36,13 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     await _repo.saveSettings(state.copyWith(weekStartDay: day));
     refresh();
   }
+
+  Future<void> toggleNotifications() async {
+    await _repo.saveSettings(
+      state.copyWith(notificationsEnabled: !state.notificationsEnabled),
+    );
+    refresh();
+  }
 }
 
 final settingsNotifierProvider =

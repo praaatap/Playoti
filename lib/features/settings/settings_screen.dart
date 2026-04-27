@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/router/route_names.dart';
+import '../../core/utils/snackbar_utils.dart';
+import '../../data/services/notification_service.dart';
 import '../../providers/settings_provider.dart';
 import '../../data/services/database_service.dart';
 import '../../providers/task_provider.dart';
@@ -81,6 +83,53 @@ class SettingsScreen extends ConsumerWidget {
             tileColor: AppColors.surface,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          ),
+          const SizedBox(height: 24),
+          _sectionLabel('Notifications'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: SwitchListTile(
+              title: const Text('Enable notifications',
+                  style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+              subtitle: const Text('Receive reminders for tasks',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: AppColors.textSecondary)),
+              value: settings.notificationsEnabled,
+              activeTrackColor: AppColors.primaryLight,
+              activeThumbColor: AppColors.primary,
+              onChanged: (_) {
+                ref
+                    .read(settingsNotifierProvider.notifier)
+                    .toggleNotifications();
+              },
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _settingsTile(
+            icon: Icons.notifications_active_outlined,
+            title: 'Request permission',
+            subtitle: 'Allow Ployti to send reminders',
+            onTap: () async {
+              final granted =
+                  await NotificationService.instance.requestPermission();
+              if (context.mounted) {
+                SnackbarUtils.showSuccess(
+                  context,
+                  granted ? 'Permission granted' : 'Permission denied',
+                );
+              }
+            },
           ),
           const SizedBox(height: 24),
           _sectionLabel('Data'),

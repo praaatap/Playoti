@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/task.dart';
 import '../data/repositories/task_repository.dart';
+import '../data/services/notification_service.dart';
 import '../data/services/widget_service.dart';
 import 'database_provider.dart';
 
@@ -16,21 +17,36 @@ class TaskNotifier extends StateNotifier<List<Task>> {
 
   Future<void> addTask(Task task) async {
     await _repo.addTask(task);
+    if (task.reminderDateTime != null) {
+      await NotificationService.instance
+          .scheduleReminder(task.id, task.title, task.reminderDateTime!);
+    }
     refresh();
   }
 
   Future<void> updateTask(Task task) async {
+    await NotificationService.instance.cancelReminder(task.id);
     await _repo.updateTask(task);
+    if (task.reminderDateTime != null) {
+      await NotificationService.instance
+          .scheduleReminder(task.id, task.title, task.reminderDateTime!);
+    }
     refresh();
   }
 
   Future<void> deleteTask(String id) async {
+    await NotificationService.instance.cancelReminder(id);
     await _repo.deleteTask(id);
     refresh();
   }
 
   Future<void> toggleComplete(String id) async {
+    final task = _repo.getTask(id);
     await _repo.toggleComplete(id);
+    // If marking as done, cancel any pending reminder
+    if (task != null && !task.isCompleted) {
+      await NotificationService.instance.cancelReminder(id);
+    }
     refresh();
   }
 
@@ -40,6 +56,7 @@ class TaskNotifier extends StateNotifier<List<Task>> {
   }
 
   Future<void> pushTaskToTomorrow(String id) async {
+    await NotificationService.instance.cancelReminder(id);
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     await _repo.pushTaskToDate(id, tomorrow);
     refresh();

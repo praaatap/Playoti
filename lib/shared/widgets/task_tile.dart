@@ -14,15 +14,35 @@ import 'category_dot.dart';
 class TaskTile extends ConsumerWidget {
   final Task task;
   final bool showDate;
+  final bool isExpanded;
+  final VoidCallback? onTap;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onSelectionToggle;
 
-  const TaskTile({super.key, required this.task, this.showDate = false});
+  const TaskTile({
+    super.key,
+    required this.task,
+    this.showDate = false,
+    this.isExpanded = false,
+    this.onTap,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onLongPress,
+    this.onSelectionToggle,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categories = ref.watch(categoryNotifierProvider);
-    final category = task.categoryId != null
-        ? categories.where((c) => c.id == task.categoryId).firstOrNull
-        : null;
+    if (isSelectionMode) {
+      return _SelectionTile(
+        task: task,
+        showDate: showDate,
+        isSelected: isSelected,
+        onToggle: onSelectionToggle,
+      );
+    }
 
     return Slidable(
       startActionPane: ActionPane(
@@ -31,7 +51,9 @@ class TaskTile extends ConsumerWidget {
         children: [
           SlidableAction(
             onPressed: (_) {
-              ref.read(taskNotifierProvider.notifier).pushTaskToTomorrow(task.id);
+              ref
+                  .read(taskNotifierProvider.notifier)
+                  .pushTaskToTomorrow(task.id);
               SnackbarUtils.showInfo(context, 'Moved to tomorrow');
             },
             backgroundColor: AppColors.primary,
@@ -66,151 +88,181 @@ class TaskTile extends ConsumerWidget {
           ),
         ],
       ),
-      child: _TaskCard(task: task, category: category, showDate: showDate),
+      child: _ExpandableTile(
+        task: task,
+        showDate: showDate,
+        isExpanded: isExpanded,
+        onTap: onTap,
+        onLongPress: onLongPress,
+      ),
     );
   }
 }
 
-class _TaskCard extends ConsumerWidget {
+class _ExpandableTile extends ConsumerWidget {
   final Task task;
-  final dynamic category;
   final bool showDate;
+  final bool isExpanded;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const _TaskCard({required this.task, required this.category, required this.showDate});
+  const _ExpandableTile({
+    required this.task,
+    required this.showDate,
+    required this.isExpanded,
+    this.onTap,
+    this.onLongPress,
+  });
+
+  Color _priorityColor(Priority p) {
+    switch (p) {
+      case Priority.high:
+        return AppColors.priorityHigh;
+      case Priority.medium:
+        return AppColors.priorityMedium;
+      case Priority.low:
+        return AppColors.priorityLow;
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Color priorityColor = _priorityColor(task.priority);
+    final categories = ref.watch(categoryNotifierProvider);
+    final category = task.categoryId != null
+        ? categories.where((c) => c.id == task.categoryId).firstOrNull
+        : null;
+    final priorityColor = _priorityColor(task.priority);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => context.push('/task/edit/${task.id}'),
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: onTap ?? () => context.push('/task/edit/${task.id}'),
+      onLongPress: onLongPress,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
             color: task.isCompleted
-                ? AppColors.surface
-                : AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: task.isCompleted
-                  ? AppColors.divider
-                  : priorityColor.withValues(alpha: 0.25),
-              width: 1,
-            ),
-            boxShadow: task.isCompleted
-                ? null
-                : [
-                    BoxShadow(
-                      color: priorityColor.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                ? AppColors.divider
+                : priorityColor.withValues(alpha: 0.25),
           ),
-          child: Row(
-            children: [
-              // Priority stripe
-              Container(
-                width: 4,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: task.isCompleted
-                      ? AppColors.divider
-                      : priorityColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(14),
-                    bottomLeft: Radius.circular(14),
+          boxShadow: task.isCompleted
+              ? null
+              : [
+                  BoxShadow(
+                    color: priorityColor.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Checkbox
-              GestureDetector(
-                onTap: () => ref
-                    .read(taskNotifierProvider.notifier)
-                    .toggleComplete(task.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: task.isCompleted
-                        ? priorityColor
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: task.isCompleted
-                          ? priorityColor
-                          : AppColors.textTertiary,
-                      width: 1.5,
+                ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Main row
+                Row(
+                  children: [
+                    // Priority stripe
+                    Container(
+                      width: 4,
+                      height: 56,
+                      color: task.isCompleted ? AppColors.divider : priorityColor,
                     ),
-                  ),
-                  child: task.isCompleted
-                      ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          if (category != null) ...[
-                            CategoryDot(
-                              color: Color(category.colorValue),
-                              size: 7,
-                            ),
-                            const SizedBox(width: 5),
-                          ],
-                          Expanded(
-                            child: Text(
-                              task.title,
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w500,
-                                color: task.isCompleted
-                                    ? AppColors.textTertiary
-                                    : AppColors.textPrimary,
-                                decoration: task.isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                decorationColor: AppColors.textTertiary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_hasSubtitle) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          _subtitle(),
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 11.5,
-                            color: AppColors.textTertiary,
+                    const SizedBox(width: 12),
+                    // Checkbox
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(taskNotifierProvider.notifier)
+                          .toggleComplete(task.id),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: task.isCompleted
+                              ? priorityColor
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: task.isCompleted
+                                ? priorityColor
+                                : AppColors.textTertiary,
+                            width: 1.5,
                           ),
                         ),
-                      ],
+                        child: task.isCompleted
+                            ? const Icon(Icons.check_rounded,
+                                size: 15, color: Colors.white)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Content
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (category != null) ...[
+                                  CategoryDot(
+                                      color: Color(category.colorValue),
+                                      size: 7),
+                                  const SizedBox(width: 5),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    task.title,
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: task.isCompleted
+                                          ? AppColors.textTertiary
+                                          : AppColors.textPrimary,
+                                      decoration: task.isCompleted
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                      decorationColor: AppColors.textTertiary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_hasSubtitle) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                _subtitle(),
+                                style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 11.5,
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (task.subtasks.isNotEmpty) ...[
+                      _SubtaskProgress(task: task),
                     ],
-                  ),
+                    const SizedBox(width: 12),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              // Time or subtask indicator
-              if (task.subtasks.isNotEmpty)
-                _SubtaskProgress(task: task),
-              const SizedBox(width: 12),
-            ],
+                // Expanded content
+                if (isExpanded)
+                  _ExpandedContent(task: task),
+              ],
+            ),
           ),
         ),
       ),
@@ -232,17 +284,129 @@ class _TaskCard extends ConsumerWidget {
     }
     return parts.join(' · ');
   }
+}
 
-  Color _priorityColor(Priority p) {
-    switch (p) {
-      case Priority.high:
-        return AppColors.priorityHigh;
-      case Priority.medium:
-        return AppColors.priorityMedium;
-      case Priority.low:
-        return AppColors.priorityLow;
-    }
+class _ExpandedContent extends ConsumerWidget {
+  final Task task;
+  const _ExpandedContent({required this.task});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      color: AppColors.surfaceVariant,
+      padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (task.description != null && task.description!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                task.description!,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (task.subtasks.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...task.subtasks.asMap().entries.map((e) {
+              final index = e.key;
+              final sub = e.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: GestureDetector(
+                  onTap: () => _toggleSubtaskAtIndex(ref, task, index),
+                  child: Row(
+                    children: [
+                      Icon(
+                        sub.isCompleted
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        size: 18,
+                        color: sub.isCompleted
+                            ? AppColors.primary
+                            : AppColors.textTertiary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          sub.title,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            color: sub.isCompleted
+                                ? AppColors.textTertiary
+                                : AppColors.textPrimary,
+                            decoration: sub.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                            decorationColor: AppColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.edit_outlined, size: 15),
+                label: const Text('Edit',
+                    style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () => context.push('/task/edit/${task.id}'),
+              ),
+              const SizedBox(width: 4),
+              TextButton.icon(
+                icon: const Icon(Icons.delete_outline, size: 15),
+                label: const Text('Delete',
+                    style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () =>
+                    ref.read(taskNotifierProvider.notifier).deleteTask(task.id),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
+}
+
+void _toggleSubtaskAtIndex(WidgetRef ref, Task task, int index) {
+  final subs = [...task.subtasks];
+  subs[index] = subs[index].copyWith(isCompleted: !subs[index].isCompleted);
+  ref
+      .read(taskNotifierProvider.notifier)
+      .updateTask(task.copyWith(subtasks: subs));
 }
 
 class _SubtaskProgress extends StatelessWidget {
@@ -279,6 +443,135 @@ class _SubtaskProgress extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SelectionTile extends StatelessWidget {
+  final Task task;
+  final bool showDate;
+  final bool isSelected;
+  final VoidCallback? onToggle;
+
+  const _SelectionTile({
+    required this.task,
+    required this.showDate,
+    required this.isSelected,
+    this.onToggle,
+  });
+
+  Color _priorityColor(Priority p) {
+    switch (p) {
+      case Priority.high:
+        return AppColors.priorityHigh;
+      case Priority.medium:
+        return AppColors.priorityMedium;
+      case Priority.low:
+        return AppColors.priorityLow;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final priorityColor = _priorityColor(task.priority);
+    return GestureDetector(
+      onTap: onToggle,
+      child: Opacity(
+        opacity: isSelected ? 1.0 : 0.85,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.06)
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.4)
+                  : AppColors.divider,
+            ),
+          ),
+          child: Row(
+            children: [
+              // Selection circle (replaces priority stripe)
+              Container(
+                width: 44,
+                height: 56,
+                alignment: Alignment.center,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? AppColors.primary : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textTertiary,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check_rounded,
+                          size: 14, color: Colors.white)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        task.title,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                          color: task.isCompleted
+                              ? AppColors.textTertiary
+                              : AppColors.textPrimary,
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (task.startTime != null || showDate) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          showDate
+                              ? task.date.formattedShortDate
+                              : task.startTime!.formattedTime,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 11.5,
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                width: 4,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: priorityColor.withValues(alpha: 0.4),
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(14),
+                    bottomRight: Radius.circular(14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

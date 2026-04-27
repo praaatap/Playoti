@@ -9,15 +9,62 @@ import '../../providers/calendar_provider.dart';
 import '../../shared/widgets/task_tile.dart';
 import '../../shared/widgets/empty_state.dart';
 
-class MonthlyScreen extends ConsumerWidget {
+class MonthlyScreen extends ConsumerStatefulWidget {
   const MonthlyScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MonthlyScreen> createState() => _MonthlyScreenState();
+}
+
+class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
+  String? _expandedTaskId;
+  bool _isSelectionMode = false;
+  final Set<String> _selectedIds = {};
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _isSelectionMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelection() => setState(() {
+        _isSelectionMode = false;
+        _selectedIds.clear();
+      });
+
+  void _completeSelected() {
+    for (final id in _selectedIds) {
+      ref.read(taskNotifierProvider.notifier).toggleComplete(id);
+    }
+    _exitSelection();
+  }
+
+  void _deleteSelected() {
+    for (final id in _selectedIds) {
+      ref.read(taskNotifierProvider.notifier).deleteTask(id);
+    }
+    _exitSelection();
+  }
+
+  void _moveSelectedToTomorrow() {
+    for (final id in _selectedIds) {
+      ref.read(taskNotifierProvider.notifier).pushTaskToTomorrow(id);
+    }
+    _exitSelection();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     final focusedMonth = ref.watch(focusedMonthProvider);
     final monthTasks = ref.watch(tasksForMonthProvider(focusedMonth));
-    final selectedDayTasks = ref.watch(tasksForDateProvider(selectedDate.dateOnly));
+    final selectedDayTasks =
+        ref.watch(tasksForDateProvider(selectedDate.dateOnly));
 
     return Column(
       children: [
@@ -176,16 +223,143 @@ class MonthlyScreen extends ConsumerWidget {
                   title: 'No tasks on this day',
                   subtitle: 'Tap + to add a task',
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: selectedDayTasks.length,
-                  itemBuilder: (_, i) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: TaskTile(task: selectedDayTasks[i]),
+              : PopScope(
+                  canPop: !_isSelectionMode,
+                  onPopInvokedWithResult: (didPop, _) {
+                    if (!didPop && _isSelectionMode) _exitSelection();
+                  },
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: selectedDayTasks.length,
+                          itemBuilder: (_, i) {
+                            final task = selectedDayTasks[i];
+                            final isExpanded = _expandedTaskId == task.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: TaskTile(
+                                task: task,
+                                isExpanded: isExpanded,
+                                isSelectionMode: _isSelectionMode,
+                                isSelected: _selectedIds.contains(task.id),
+                                onTap: _isSelectionMode
+                                    ? () => _toggleSelection(task.id)
+                                    : () => setState(() {
+                                          _expandedTaskId =
+                                              isExpanded ? null : task.id;
+                                        }),
+                                onLongPress: !_isSelectionMode
+                                    ? () => setState(() {
+                                          _isSelectionMode = true;
+                                          _selectedIds.add(task.id);
+                                        })
+                                    : null,
+                                onSelectionToggle: () =>
+                                    _toggleSelection(task.id),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      if (_isSelectionMode)
+                        _MonthlyBatchBar(
+                          selectedCount: _selectedIds.length,
+                          onComplete: _completeSelected,
+                          onDelete: _deleteSelected,
+                          onTomorrow: _moveSelectedToTomorrow,
+                          onCancel: _exitSelection,
+                        ),
+                    ],
                   ),
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _MonthlyBatchBar extends StatelessWidget {
+  final int selectedCount;
+  final VoidCallback onComplete;
+  final VoidCallback onDelete;
+  final VoidCallback onTomorrow;
+  final VoidCallback onCancel;
+
+  const _MonthlyBatchBar({
+    required this.selectedCount,
+    required this.onComplete,
+    required this.onDelete,
+    required this.onTomorrow,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: const Border(top: BorderSide(color: AppColors.divider)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Text('$selectedCount selected',
+              style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
+          const Spacer(),
+          TextButton(
+            onPressed: onComplete,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.success,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Complete',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: onTomorrow,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Tomorrow',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: onDelete,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Delete',
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, size: 20),
+            color: AppColors.textSecondary,
+            onPressed: onCancel,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
     );
   }
 }

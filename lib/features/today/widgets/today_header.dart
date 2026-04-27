@@ -20,11 +20,9 @@ class TodayHeader extends StatelessWidget {
     final remaining = totalTasks - completedTasks;
     final allDone = totalTasks > 0 && remaining == 0;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +59,6 @@ class TodayHeader extends StatelessWidget {
             ),
           ],
         ],
-      ),
     );
   }
 }
