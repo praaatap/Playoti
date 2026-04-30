@@ -8,6 +8,7 @@ import '../../features/home/home_shell.dart';
 import '../../features/today/today_screen.dart';
 import '../../features/weekly/weekly_screen.dart';
 import '../../features/monthly/monthly_screen.dart';
+import '../../features/notes/notes_screen.dart';
 
 import '../../features/task/task_create_screen.dart';
 import '../../features/task/task_edit_screen.dart';
@@ -17,6 +18,7 @@ import '../../features/search/search_screen.dart';
 import '../../features/statistics/statistics_screen.dart';
 import '../../features/export/export_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/templates/templates_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -61,7 +63,20 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: MonthlyScreen(),
             ),
           ),
+          GoRoute(
+            path: RoutePaths.notes,
+            name: RouteNames.notes,
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: NotesScreen(),
+            ),
+          ),
         ],
+      ),
+      GoRoute(
+        path: RoutePaths.noteCreate,
+        name: RouteNames.noteCreate,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const NoteEditorScreen(noteId: null),
       ),
       GoRoute(
         path: RoutePaths.taskCreate,
@@ -121,6 +136,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: RouteNames.settings,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.templates,
+        name: RouteNames.templates,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TemplatesScreen(),
       ),
     ],
   );

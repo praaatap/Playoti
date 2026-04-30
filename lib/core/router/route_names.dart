@@ -7,6 +7,7 @@ class RouteNames {
   static const weekly = 'weekly';
   static const monthly = 'monthly';
   static const notes = 'notes';
+  static const noteCreate = 'note-create';
   static const taskCreate = 'task-create';
   static const taskEdit = 'task-edit';
   static const noteEdit = 'note-edit';
@@ -15,6 +16,7 @@ class RouteNames {
   static const statistics = 'statistics';
   static const export_ = 'export';
   static const settings = 'settings';
+  static const templates = 'templates';
 }
 
 class RoutePaths {
@@ -26,6 +28,7 @@ class RoutePaths {
   static const weekly = '/weekly';
   static const monthly = '/monthly';
   static const notes = '/notes';
+  static const noteCreate = '/note/new';
   static const taskCreate = '/task/create';
   static const taskEdit = '/task/edit/:id';
   static const noteEdit = '/note/edit/:id';
@@ -34,4 +37,5 @@ class RoutePaths {
   static const statistics = '/statistics';
   static const export_ = '/export';
   static const settings = '/settings';
+  static const templates = '/templates';
 }

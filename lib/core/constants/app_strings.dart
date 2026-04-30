@@ -109,4 +109,8 @@ class AppStrings {
   static const goodMorning = 'Good morning';
   static const goodAfternoon = 'Good afternoon';
   static const goodEvening = 'Good evening';
+
+  // Templates
+  static const templates = 'Templates';
+  static const useTemplate = 'Use Template';
 }

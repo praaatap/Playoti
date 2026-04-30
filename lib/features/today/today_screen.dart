@@ -14,6 +14,8 @@ import '../../shared/widgets/task_tile.dart';
 import '../../shared/widgets/empty_state.dart';
 import 'widgets/quick_add_bar.dart';
 import 'widgets/today_header.dart';
+import '../templates/template_detail_sheet.dart';
+import '../../data/templates/builtin_templates.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
@@ -143,6 +145,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           completedTasks: completedTasks.length,
                         ),
                       ),
+                      // Quick Templates
+                      const Gap(12),
+                      const _QuickTemplatesRow(),
                       // Overdue section
                       if (overdueTasks.isNotEmpty) ...[
                         const Gap(16),
@@ -281,6 +286,71 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             ),
           const QuickAddBar(),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickTemplatesRow extends StatelessWidget {
+  const _QuickTemplatesRow();
+
+  static const _quickIds = [
+    'morning_routine',
+    'deep_work',
+    'evening_wind_down',
+    'weekly_review',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = builtinTemplates
+        .where((t) => _quickIds.contains(t.id))
+        .toList();
+
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: chips.length,
+        separatorBuilder: (_, _i) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final template = chips[i];
+          return GestureDetector(
+            onTap: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => TemplateDetailSheet(template: template),
+            ),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.20)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(template.emoji,
+                      style: const TextStyle(fontSize: 14)),
+                  const SizedBox(width: 6),
+                  Text(
+                    template.name,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

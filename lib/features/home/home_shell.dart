@@ -15,6 +15,7 @@ class HomeShell extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
     if (location.startsWith(RoutePaths.weekly)) return 1;
     if (location.startsWith(RoutePaths.monthly)) return 2;
+    if (location.startsWith(RoutePaths.notes)) return 3;
     return 0;
   }
 
@@ -32,6 +33,8 @@ class HomeShell extends StatelessWidget {
               context.push(RoutePaths.categories);
             case 'statistics':
               context.push(RoutePaths.statistics);
+            case 'templates':
+              context.push(RoutePaths.templates);
             case 'export':
               context.push(RoutePaths.export_);
             case 'settings':
@@ -41,7 +44,9 @@ class HomeShell extends StatelessWidget {
       ),
       body: child,
       floatingActionButton: _CupertinoFAB(
-        onPressed: () => context.push(RoutePaths.taskCreate),
+        onPressed: () => index == 3
+            ? context.push(RoutePaths.noteCreate)
+            : context.push(RoutePaths.taskCreate),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: _CupertinoBottomNav(currentIndex: index),
@@ -139,11 +144,13 @@ class _MoreMenu extends StatelessWidget {
       color: AppColors.surface,
       onSelected: onSelected,
       itemBuilder: (_) => [
-        _item('categories', CupertinoIcons.tag, AppStrings.categories),
         _item('statistics', CupertinoIcons.chart_bar, AppStrings.statistics),
-        _item('export', CupertinoIcons.arrow_down_to_line, AppStrings.export_),
+        _item('categories', CupertinoIcons.tag, AppStrings.categories),
+        _item('templates', CupertinoIcons.list_bullet_below_rectangle,
+            AppStrings.templates),
         const PopupMenuDivider(),
         _item('settings', CupertinoIcons.settings, AppStrings.settings),
+        _item('export', CupertinoIcons.arrow_down_to_line, AppStrings.export_),
       ],
     );
   }
@@ -213,6 +220,8 @@ class _CupertinoBottomNav extends StatelessWidget {
         AppStrings.week, RoutePaths.weekly),
     (CupertinoIcons.calendar_today, CupertinoIcons.calendar_today,
         AppStrings.month, RoutePaths.monthly),
+    (CupertinoIcons.doc_text, CupertinoIcons.doc_text_fill,
+        AppStrings.notes, RoutePaths.notes),
   ];
 
   @override
@@ -223,9 +232,9 @@ class _CupertinoBottomNav extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: const BoxDecoration(
+            color: AppColors.background,
             border: Border(top: BorderSide(color: AppColors.divider, width: 0.4)),
           ),
-          color: AppColors.background.withValues(alpha: 0.88),
           child: SizedBox(
             height: 56 + bottomPadding,
             child: Column(
@@ -240,38 +249,51 @@ class _CupertinoBottomNav extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           onPressed: () => context.go(path),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 180),
-                                transitionBuilder: (child, anim) =>
-                                    ScaleTransition(scale: anim, child: child),
-                                child: Icon(
-                                  isActive ? iconOn : iconOff,
-                                  key: ValueKey(isActive),
-                                  size: isActive ? 26 : 24,
-                                  color: isActive
-                                      ? AppColors.primary
-                                      : AppColors.textTertiary,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? AppColors.primary.withValues(alpha: 0.10)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 180),
+                                  transitionBuilder: (child, anim) =>
+                                      ScaleTransition(scale: anim, child: child),
+                                  child: Icon(
+                                    isActive ? iconOn : iconOff,
+                                    key: ValueKey(isActive),
+                                    size: isActive ? 26 : 24,
+                                    color: isActive
+                                        ? AppColors.primary
+                                        : AppColors.textTertiary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 3),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 180),
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 10,
-                                  fontWeight: isActive
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: isActive
-                                      ? AppColors.primary
-                                      : AppColors.textTertiary,
+                                const SizedBox(height: 3),
+                                AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 180),
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 10,
+                                    fontWeight: isActive
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: isActive
+                                        ? AppColors.primary
+                                        : AppColors.textTertiary,
+                                  ),
+                                  child: Text(label),
                                 ),
-                                child: Text(label),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
