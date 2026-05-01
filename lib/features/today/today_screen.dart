@@ -12,7 +12,6 @@ import '../../providers/settings_provider.dart';
 import '../../data/models/task.dart';
 import '../../shared/widgets/task_tile.dart';
 import '../../shared/widgets/empty_state.dart';
-import 'widgets/quick_add_bar.dart';
 import 'widgets/today_header.dart';
 import '../templates/template_detail_sheet.dart';
 import '../../data/templates/builtin_templates.dart';
@@ -28,6 +27,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   String? _expandedTaskId;
   bool _isSelectionMode = false;
   final Set<String> _selectedIds = {};
+  final Set<String> _collapsedSections = {};
 
   void _toggleSelection(String id) {
     setState(() {
@@ -128,23 +128,27 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     subtitle: AppStrings.addFirstTask,
                   )
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.14)),
-                        ),
-                        child: TodayHeader(
-                          greeting: AppDateUtils.getGreeting(),
-                          date: today.formattedFullDate,
-                          totalTasks: tasks.length,
-                          completedTasks: completedTasks.length,
-                        ),
-                      ),
+                      Builder(builder: (context) {
+                        final primary =
+                            Theme.of(context).colorScheme.primary;
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: primary.withValues(alpha: 0.14)),
+                          ),
+                          child: TodayHeader(
+                            greeting: AppDateUtils.getGreeting(),
+                            date: today.formattedFullDate,
+                            totalTasks: tasks.length,
+                            completedTasks: completedTasks.length,
+                          ),
+                        );
+                      }),
                       // Quick Templates
                       const Gap(12),
                       const _QuickTemplatesRow(),
@@ -185,50 +189,62 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                         if (!suppressHeader) ...[
                           const Gap(16),
                           _TimeSectionHeader(
-                              label: entry.key, count: entry.value.length),
+                            label: entry.key,
+                            count: entry.value.length,
+                            isCollapsed:
+                                _collapsedSections.contains(entry.key),
+                            onToggle: () => setState(() {
+                              if (_collapsedSections.contains(entry.key)) {
+                                _collapsedSections.remove(entry.key);
+                              } else {
+                                _collapsedSections.add(entry.key);
+                              }
+                            }),
+                          ),
                           const Gap(8),
                         ] else
                           const Gap(16),
-                        ...entry.value.asMap().entries.map((e) {
-                          final task = e.value;
-                          final isExpanded = _expandedTaskId == task.id;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: TaskTile(
-                              task: task,
-                              isExpanded: isExpanded,
-                              isSelectionMode: _isSelectionMode,
-                              isSelected: _selectedIds.contains(task.id),
-                              onTap: _isSelectionMode
-                                  ? () => _toggleSelection(task.id)
-                                  : () => setState(() {
-                                        _expandedTaskId =
-                                            isExpanded ? null : task.id;
-                                      }),
-                              onLongPress: !_isSelectionMode
-                                  ? () => setState(() {
-                                        _isSelectionMode = true;
-                                        _selectedIds.add(task.id);
-                                      })
-                                  : null,
-                              onSelectionToggle: () =>
-                                  _toggleSelection(task.id),
-                            )
-                                .animate()
-                                .fadeIn(
-                                  duration: 300.ms,
-                                  delay: Duration(
-                                      milliseconds: e.key * 50),
-                                )
-                                .slideY(
-                                  begin: 0.1,
-                                  end: 0,
-                                  duration: 300.ms,
-                                  delay: Duration(
-                                      milliseconds: e.key * 50),
-                                ),
-                          );
-                        }),
+                        if (!_collapsedSections.contains(entry.key))
+                          ...entry.value.asMap().entries.map((e) {
+                            final task = e.value;
+                            final isExpanded = _expandedTaskId == task.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: TaskTile(
+                                task: task,
+                                isExpanded: isExpanded,
+                                isSelectionMode: _isSelectionMode,
+                                isSelected: _selectedIds.contains(task.id),
+                                onTap: _isSelectionMode
+                                    ? () => _toggleSelection(task.id)
+                                    : () => setState(() {
+                                          _expandedTaskId =
+                                              isExpanded ? null : task.id;
+                                        }),
+                                onLongPress: !_isSelectionMode
+                                    ? () => setState(() {
+                                          _isSelectionMode = true;
+                                          _selectedIds.add(task.id);
+                                        })
+                                    : null,
+                                onSelectionToggle: () =>
+                                    _toggleSelection(task.id),
+                              )
+                                  .animate()
+                                  .fadeIn(
+                                    duration: 300.ms,
+                                    delay: Duration(
+                                        milliseconds: e.key * 50),
+                                  )
+                                  .slideY(
+                                    begin: 0.1,
+                                    end: 0,
+                                    duration: 300.ms,
+                                    delay: Duration(
+                                        milliseconds: e.key * 50),
+                                  ),
+                            );
+                          }),
                       ],
                       // Completed section
                       if (showCompleted && completedTasks.isNotEmpty) ...[
@@ -284,7 +300,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               onMoveToTomorrow: _moveSelectedToTomorrow,
               onCancel: _exitSelection,
             ),
-          const QuickAddBar(),
         ],
       ),
     );
@@ -312,7 +327,7 @@ class _QuickTemplatesRow extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: chips.length,
-        separatorBuilder: (_, _i) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final template = chips[i];
           return GestureDetector(
@@ -359,48 +374,71 @@ class _QuickTemplatesRow extends StatelessWidget {
 class _TimeSectionHeader extends StatelessWidget {
   final String label;
   final int count;
-  const _TimeSectionHeader({required this.label, required this.count});
+  final bool isCollapsed;
+  final VoidCallback onToggle;
+
+  const _TimeSectionHeader({
+    required this.label,
+    required this.count,
+    required this.isCollapsed,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 14,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(2),
+    final primary = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              color: primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '$count',
+          const SizedBox(width: 8),
+          Text(
+            label,
             style: const TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: primary,
+              ),
+            ),
+          ),
+          const Spacer(),
+          AnimatedRotation(
+            turns: isCollapsed ? -0.25 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: const Icon(
+              Icons.expand_more_rounded,
+              size: 18,
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

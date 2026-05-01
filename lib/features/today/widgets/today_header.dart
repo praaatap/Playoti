@@ -15,8 +15,19 @@ class TodayHeader extends StatelessWidget {
     required this.completedTasks,
   });
 
+  String _motivationalLine(int total, int completed) {
+    if (total == 0) return 'Your day is clear.';
+    if (completed == 0) return 'Ready to make progress? Let\'s go!';
+    if (completed == total) return 'Amazing! All tasks cleared today 🎉';
+    final pct = (completed / total * 100).round();
+    if (pct >= 75) return 'Almost there — keep the momentum!';
+    if (pct >= 50) return 'Great progress, more than halfway done!';
+    return 'You\'ve started — keep going!';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final remaining = totalTasks - completedTasks;
     final allDone = totalTasks > 0 && remaining == 0;
 
@@ -40,13 +51,23 @@ class TodayHeader extends StatelessWidget {
                       height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     date,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 13,
                       color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _motivationalLine(totalTasks, completedTasks),
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: allDone ? AppColors.success : primary,
                     ),
                   ),
                 ],
@@ -59,6 +80,7 @@ class TodayHeader extends StatelessWidget {
                 total: totalTasks,
                 allDone: allDone,
                 remaining: remaining,
+                primary: primary,
               ),
             ],
           ],
@@ -69,6 +91,7 @@ class TodayHeader extends StatelessWidget {
             completed: completedTasks,
             total: totalTasks,
             allDone: allDone,
+            primary: primary,
           ),
         ],
       ],
@@ -80,28 +103,35 @@ class _ProgressBar extends StatelessWidget {
   final int completed;
   final int total;
   final bool allDone;
+  final Color primary;
 
   const _ProgressBar({
     required this.completed,
     required this.total,
     required this.allDone,
+    required this.primary,
   });
 
   @override
   Widget build(BuildContext context) {
     final progress = total > 0 ? completed / total : 0.0;
-    final barColor = allDone ? AppColors.success : AppColors.primary;
+    final barColor = allDone ? AppColors.success : primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-            valueColor: AlwaysStoppedAnimation(barColor),
-            minHeight: 6,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: progress),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOut,
+            builder: (context, value, _) => LinearProgressIndicator(
+              value: value,
+              backgroundColor: primary.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation(barColor),
+              minHeight: 6,
+            ),
           ),
         ),
         const SizedBox(height: 4),
@@ -126,12 +156,14 @@ class _RingProgress extends StatelessWidget {
   final int total;
   final bool allDone;
   final int remaining;
+  final Color primary;
 
   const _RingProgress({
     required this.completed,
     required this.total,
     required this.allDone,
     required this.remaining,
+    required this.primary,
   });
 
   @override
@@ -140,19 +172,24 @@ class _RingProgress extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          width: 52,
-          height: 52,
+          width: 56,
+          height: 56,
           child: Stack(
             children: [
               SizedBox.expand(
-                child: CircularProgressIndicator(
-                  value: progress,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                  valueColor: AlwaysStoppedAnimation(
-                    allDone ? AppColors.success : AppColors.primary,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: progress),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOut,
+                  builder: (context, value, _) => CircularProgressIndicator(
+                    value: value,
+                    backgroundColor: primary.withValues(alpha: 0.15),
+                    valueColor: AlwaysStoppedAnimation(
+                      allDone ? AppColors.success : primary,
+                    ),
+                    strokeWidth: 4.5,
+                    strokeCap: StrokeCap.round,
                   ),
-                  strokeWidth: 4.5,
-                  strokeCap: StrokeCap.round,
                 ),
               ),
               Center(
@@ -161,11 +198,11 @@ class _RingProgress extends StatelessWidget {
                         size: 22, color: AppColors.success)
                     : Text(
                         '$remaining',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primaryDark,
+                          color: primary,
                         ),
                       ),
               ),

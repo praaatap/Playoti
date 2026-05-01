@@ -43,6 +43,11 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     );
     refresh();
   }
+
+  Future<void> setTheme(String id) async {
+    await _repo.saveSettings(state.copyWith(themeId: id));
+    refresh();
+  }
 }
 
 final settingsNotifierProvider =

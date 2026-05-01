@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/constants/app_strings.dart';
+import 'providers/settings_provider.dart';
 
 class PloytiApp extends ConsumerWidget {
   const PloytiApp({super.key});
@@ -10,10 +11,11 @@ class PloytiApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final settings = ref.watch(settingsNotifierProvider);
     return MaterialApp.router(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.forId(settings.themeId),
       routerConfig: router,
     );
   }

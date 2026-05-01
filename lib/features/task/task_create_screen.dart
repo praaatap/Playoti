@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
+import '../../core/extensions/date_extensions.dart';
 import '../../data/models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/category_provider.dart';
@@ -200,6 +201,17 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
     return DateTime(_date.year, _date.month, _date.day, time.hour, time.minute);
   }
 
+  Color _priorityColor() {
+    switch (_priority) {
+      case Priority.high:
+        return AppColors.priorityHigh;
+      case Priority.medium:
+        return AppColors.priorityMedium;
+      case Priority.low:
+        return AppColors.priorityLow;
+    }
+  }
+
   String _priorityLabel() {
     switch (_priority) {
       case Priority.high:
@@ -230,7 +242,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
     final d = _reminderDateTime!;
     final h = d.hour.toString().padLeft(2, '0');
     final m = d.minute.toString().padLeft(2, '0');
-    return '${d.day}/${d.month}/${d.year}  $h:$m';
+    return '${d.formattedShortDate}  $h:$m';
   }
 
   void _save() {
@@ -260,11 +272,20 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final categories = ref.watch(categoryNotifierProvider);
     final cat = _categoryId != null
         ? categories.where((c) => c.id == _categoryId).firstOrNull
         : null;
     final catName = cat?.name ?? 'None';
+
+    final today = DateTime.now().dateOnly;
+    final quickDates = [
+      (label: 'Today', date: today),
+      (label: 'Tomorrow', date: today.add(const Duration(days: 1))),
+      (label: 'In 2 days', date: today.add(const Duration(days: 2))),
+      (label: 'Next week', date: today.add(const Duration(days: 7))),
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -280,7 +301,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
             child: FilledButton(
               onPressed: _save,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                 ),
@@ -295,6 +316,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
+          // Title
           TextField(
             controller: _titleController,
             autofocus: true,
@@ -316,6 +338,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          // Description
           TextField(
             controller: _descController,
             maxLines: null,
@@ -331,16 +354,63 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
                   color: AppColors.textTertiary),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // Quick date chips
+          SizedBox(
+            height: 32,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: quickDates.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final qd = quickDates[i];
+                final isSelected = _date.isSameDay(qd.date);
+                return GestureDetector(
+                  onTap: () => setState(() => _date = qd.date),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected ? primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? primary
+                            : AppColors.divider,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Text(
+                      qd.label,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
           const Divider(color: AppColors.divider),
+
+          // Date
           _PropertyRow(
             icon: Icons.calendar_today_rounded,
             label: 'Date',
-            value: '${_date.day}/${_date.month}/${_date.year}',
+            value: _date.relativeLabel,
             isSet: true,
             onTap: _pickDate,
           ),
           const Divider(color: AppColors.divider, indent: 50),
+          // Start time
           _PropertyRow(
             icon: Icons.schedule_rounded,
             label: 'Start',
@@ -351,6 +421,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
             onClear: () => setState(() => _startTime = null),
           ),
           const Divider(color: AppColors.divider, indent: 50),
+          // End time
           _PropertyRow(
             icon: Icons.schedule_outlined,
             label: 'End',
@@ -361,14 +432,17 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
             onClear: () => setState(() => _endTime = null),
           ),
           const Divider(color: AppColors.divider, indent: 50),
+          // Priority (with colored dot)
           _PropertyRow(
             icon: Icons.flag_outlined,
             label: 'Priority',
             value: _priorityLabel(),
             isSet: true,
             onTap: _showPrioritySheet,
+            valueDot: _priorityColor(),
           ),
           const Divider(color: AppColors.divider, indent: 50),
+          // Category
           _PropertyRow(
             icon: Icons.label_outline_rounded,
             label: 'Category',
@@ -379,6 +453,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
             onClear: () => setState(() => _categoryId = null),
           ),
           const Divider(color: AppColors.divider, indent: 50),
+          // Recurrence
           _PropertyRow(
             icon: Icons.repeat_rounded,
             label: 'Recurrence',
@@ -389,6 +464,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
             onClear: () => setState(() => _recurrence = null),
           ),
           const Divider(color: AppColors.divider, indent: 50),
+          // Reminder
           _PropertyRow(
             icon: Icons.notifications_outlined,
             label: 'Reminder',
@@ -400,6 +476,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
           ),
           const Divider(color: AppColors.divider),
           const SizedBox(height: 12),
+          // Subtasks
           Row(
             children: [
               const Icon(Icons.checklist_rounded,
@@ -453,6 +530,7 @@ class _PropertyRow extends StatelessWidget {
   final VoidCallback onTap;
   final bool showClear;
   final VoidCallback? onClear;
+  final Color? valueDot;
 
   const _PropertyRow({
     required this.icon,
@@ -462,6 +540,7 @@ class _PropertyRow extends StatelessWidget {
     required this.onTap,
     this.showClear = false,
     this.onClear,
+    this.valueDot,
   });
 
   @override
@@ -487,6 +566,17 @@ class _PropertyRow extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              if (valueDot != null) ...[
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: valueDot,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
               Text(
                 value,
                 style: TextStyle(

@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_dimensions.dart';
+import 'app_palettes.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light {
+  static ThemeData get light => fromPalette(AppPalette.amber);
+
+  static ThemeData forId(String id) => fromPalette(AppPalette.forId(id));
+
+  static ThemeData fromPalette(AppPalette p) {
     return ThemeData(
       useMaterial3: true,
       fontFamily: 'Poppins',
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        primary: AppColors.primary,
-        secondary: AppColors.accent,
+        seedColor: p.primary,
+        primary: p.primary,
+        secondary: p.accent,
         surface: AppColors.surface,
         error: AppColors.error,
         brightness: Brightness.light,
       ).copyWith(
-        primaryContainer: AppColors.accentLight,
-        secondaryContainer: AppColors.surfaceVariant,
+        primaryContainer: p.accentLight,
+        secondaryContainer: p.surfaceVariant,
       ),
-      scaffoldBackgroundColor: AppColors.background,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+      scaffoldBackgroundColor: p.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: p.background,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
+        titleTextStyle: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 20,
           fontWeight: FontWeight.w600,
@@ -44,25 +49,25 @@ class AppTheme {
         ),
         margin: EdgeInsets.zero,
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: p.primary,
         unselectedItemColor: AppColors.textTertiary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: TextStyle(
+        selectedLabelStyle: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
-        unselectedLabelStyle: TextStyle(
+        unselectedLabelStyle: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 12,
           fontWeight: FontWeight.w400,
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.primary,
+        backgroundColor: p.primary,
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -71,7 +76,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariant,
+        fillColor: p.surfaceVariant,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppDimensions.lg,
           vertical: AppDimensions.md,
@@ -86,7 +91,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: p.primary, width: 1.5),
         ),
         hintStyle: const TextStyle(
           fontFamily: 'Poppins',
@@ -95,8 +100,8 @@ class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surfaceVariant,
-        selectedColor: AppColors.primaryLight,
+        backgroundColor: p.surfaceVariant,
+        selectedColor: p.primaryLight,
         labelStyle: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 13,
@@ -118,9 +123,7 @@ class AppTheme {
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return AppColors.primary;
-          }
+          if (states.contains(WidgetState.selected)) return p.primary;
           return Colors.transparent;
         }),
         shape: RoundedRectangleBorder(

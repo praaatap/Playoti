@@ -22,8 +22,10 @@ class HomeShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor,
       extendBodyBehindAppBar: false,
       appBar: _CupertinoAppBar(
         onSearch: () => context.push(RoutePaths.search),
@@ -44,6 +46,7 @@ class HomeShell extends StatelessWidget {
       ),
       body: child,
       floatingActionButton: _CupertinoFAB(
+        color: primary,
         onPressed: () => index == 3
             ? context.push(RoutePaths.noteCreate)
             : context.push(RoutePaths.taskCreate),
@@ -70,6 +73,8 @@ class _CupertinoAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -77,7 +82,7 @@ class _CupertinoAppBar extends StatelessWidget implements PreferredSizeWidget {
           height: 52 + MediaQuery.of(context).padding.top,
           padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
           decoration: BoxDecoration(
-            color: AppColors.background.withValues(alpha: 0.85),
+            color: bgColor.withValues(alpha: 0.85),
             border: const Border(
               bottom: BorderSide(color: AppColors.divider, width: 0.4),
             ),
@@ -86,12 +91,11 @@ class _CupertinoAppBar extends StatelessWidget implements PreferredSizeWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(width: 16),
-              // Logo icon
               Container(
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: primary,
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child: const Icon(CupertinoIcons.calendar,
@@ -109,7 +113,6 @@ class _CupertinoAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               const Spacer(),
-              // Search
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 minimumSize: Size.zero,
@@ -117,7 +120,6 @@ class _CupertinoAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: const Icon(CupertinoIcons.search,
                     size: 22, color: AppColors.textSecondary),
               ),
-              // More menu
               _MoreMenu(onSelected: onMenuSelected),
               const SizedBox(width: 4),
             ],
@@ -181,7 +183,8 @@ class _MoreMenu extends StatelessWidget {
 
 class _CupertinoFAB extends StatelessWidget {
   final VoidCallback onPressed;
-  const _CupertinoFAB({required this.onPressed});
+  final Color color;
+  const _CupertinoFAB({required this.onPressed, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -191,11 +194,11 @@ class _CupertinoFAB extends StatelessWidget {
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: color,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.35),
+              color: color.withValues(alpha: 0.35),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -226,14 +229,17 @@ class _CupertinoBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.background,
-            border: Border(top: BorderSide(color: AppColors.divider, width: 0.4)),
+          decoration: BoxDecoration(
+            color: bgColor,
+            border:
+                const Border(top: BorderSide(color: AppColors.divider, width: 0.4)),
           ),
           child: SizedBox(
             height: 56 + bottomPadding,
@@ -256,7 +262,7 @@ class _CupertinoBottomNav extends StatelessWidget {
                                 horizontal: 14, vertical: 6),
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? AppColors.primary.withValues(alpha: 0.10)
+                                  ? primary.withValues(alpha: 0.10)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -273,7 +279,7 @@ class _CupertinoBottomNav extends StatelessWidget {
                                     key: ValueKey(isActive),
                                     size: isActive ? 26 : 24,
                                     color: isActive
-                                        ? AppColors.primary
+                                        ? primary
                                         : AppColors.textTertiary,
                                   ),
                                 ),
@@ -287,7 +293,7 @@ class _CupertinoBottomNav extends StatelessWidget {
                                         ? FontWeight.w600
                                         : FontWeight.w400,
                                     color: isActive
-                                        ? AppColors.primary
+                                        ? primary
                                         : AppColors.textTertiary,
                                   ),
                                   child: Text(label),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/router/route_names.dart';
+import '../../core/theme/app_palettes.dart';
 import '../../core/utils/snackbar_utils.dart';
 import '../../data/services/notification_service.dart';
 import '../../providers/settings_provider.dart';
@@ -20,11 +21,94 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ── Appearance ──────────────────────────────────────────────────
+          _sectionLabel('Appearance'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Theme',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: AppPalette.all.map((palette) {
+                    final isSelected = settings.themeId == palette.id;
+                    return GestureDetector(
+                      onTap: () => ref
+                          .read(settingsNotifierProvider.notifier)
+                          .setTheme(palette.id),
+                      child: Column(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: palette.primary,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: AppColors.textPrimary, width: 2.5)
+                                  : Border.all(
+                                      color: Colors.transparent, width: 2.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: palette.primary.withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: isSelected
+                                ? const Icon(Icons.check_rounded,
+                                    color: Colors.white, size: 20)
+                                : null,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            palette.name.split(' ').first,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 10,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isSelected
+                                  ? AppColors.textPrimary
+                                  : AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── General ─────────────────────────────────────────────────────
           _sectionLabel('General'),
           const SizedBox(height: 8),
           _settingsTile(
@@ -73,8 +157,8 @@ class SettingsScreen extends ConsumerWidget {
                     fontSize: 12,
                     color: AppColors.textSecondary)),
             value: settings.showCompletedTasks,
-            activeTrackColor: AppColors.primaryLight,
-            activeThumbColor: AppColors.primary,
+            activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+            activeThumbColor: Theme.of(context).colorScheme.primary,
             onChanged: (_) {
               ref.read(settingsNotifierProvider.notifier).toggleShowCompleted();
             },
@@ -85,6 +169,8 @@ class SettingsScreen extends ConsumerWidget {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           ),
           const SizedBox(height: 24),
+
+          // ── Notifications ────────────────────────────────────────────────
           _sectionLabel('Notifications'),
           const SizedBox(height: 8),
           Container(
@@ -102,8 +188,8 @@ class SettingsScreen extends ConsumerWidget {
                       fontSize: 12,
                       color: AppColors.textSecondary)),
               value: settings.notificationsEnabled,
-              activeTrackColor: AppColors.primaryLight,
-              activeThumbColor: AppColors.primary,
+              activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+              activeThumbColor: Theme.of(context).colorScheme.primary,
               onChanged: (_) {
                 ref
                     .read(settingsNotifierProvider.notifier)
@@ -132,6 +218,8 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 24),
+
+          // ── Data ─────────────────────────────────────────────────────────
           _sectionLabel('Data'),
           const SizedBox(height: 8),
           _settingsTile(
@@ -163,6 +251,8 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 24),
+
+          // ── About ─────────────────────────────────────────────────────────
           _sectionLabel('About'),
           const SizedBox(height: 8),
           Container(
@@ -178,7 +268,7 @@ class SettingsScreen extends ConsumerWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.event_note_rounded,

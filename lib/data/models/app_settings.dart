@@ -6,6 +6,7 @@ class AppSettings {
   final bool notificationsEnabled;
   final String defaultPriority;
   final String exportFormat;
+  final String themeId;
 
   const AppSettings({
     this.hasCompletedOnboarding = false,
@@ -15,6 +16,7 @@ class AppSettings {
     this.notificationsEnabled = true,
     this.defaultPriority = 'medium',
     this.exportFormat = 'json',
+    this.themeId = 'amber',
   });
 
   AppSettings copyWith({
@@ -25,6 +27,7 @@ class AppSettings {
     bool? notificationsEnabled,
     String? defaultPriority,
     String? exportFormat,
+    String? themeId,
   }) {
     return AppSettings(
       hasCompletedOnboarding:
@@ -35,6 +38,7 @@ class AppSettings {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       defaultPriority: defaultPriority ?? this.defaultPriority,
       exportFormat: exportFormat ?? this.exportFormat,
+      themeId: themeId ?? this.themeId,
     );
   }
 
@@ -47,6 +51,7 @@ class AppSettings {
       'notificationsEnabled': notificationsEnabled,
       'defaultPriority': defaultPriority,
       'exportFormat': exportFormat,
+      'themeId': themeId,
     };
   }
 
@@ -59,6 +64,7 @@ class AppSettings {
       notificationsEnabled: map['notificationsEnabled'] as bool? ?? true,
       defaultPriority: map['defaultPriority'] as String? ?? 'medium',
       exportFormat: map['exportFormat'] as String? ?? 'json',
+      themeId: map['themeId'] as String? ?? 'amber',
     );
   }
 }

@@ -26,6 +26,10 @@ class AppDateUtils {
     return months[month];
   }
 
+  static String getMonthLabel(DateTime date) {
+    return '${_monthName(date.month)} ${date.year}';
+  }
+
   static String _shortMonth(int month) {
     const months = [
       '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',

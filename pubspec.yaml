@@ -23,6 +23,7 @@ dependencies:
 
   # Calendar
   table_calendar: ^3.2.0
+  easy_date_timeline: ^2.0.9
 
   # Date formatting
   intl: ^0.20.2

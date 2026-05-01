@@ -20,6 +20,7 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
   String? _expandedTaskId;
   bool _isSelectionMode = false;
   final Set<String> _selectedIds = {};
+  CalendarFormat _calendarFormat = CalendarFormat.month;
 
   void _toggleSelection(String id) {
     setState(() {
@@ -58,6 +59,12 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
     _exitSelection();
   }
 
+  void _jumpToToday() {
+    final today = DateTime.now().dateOnly;
+    ref.read(selectedDateProvider.notifier).state = today;
+    ref.read(focusedMonthProvider.notifier).state = today;
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
@@ -65,14 +72,84 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
     final monthTasks = ref.watch(tasksForMonthProvider(focusedMonth));
     final selectedDayTasks =
         ref.watch(tasksForDateProvider(selectedDate.dateOnly));
+    final primary = Theme.of(context).colorScheme.primary;
+    final surfaceVariant =
+        Theme.of(context).colorScheme.secondaryContainer;
+    final isToday = selectedDate.isToday;
 
     return Column(
       children: [
+        // ── Format toggle + Today button row ─────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Row(
+            children: [
+              // Format toggle chips
+              _FormatChip(
+                label: 'Month',
+                active: _calendarFormat == CalendarFormat.month,
+                primary: primary,
+                onTap: () =>
+                    setState(() => _calendarFormat = CalendarFormat.month),
+              ),
+              const SizedBox(width: 6),
+              _FormatChip(
+                label: '2 Weeks',
+                active: _calendarFormat == CalendarFormat.twoWeeks,
+                primary: primary,
+                onTap: () =>
+                    setState(() => _calendarFormat = CalendarFormat.twoWeeks),
+              ),
+              const SizedBox(width: 6),
+              _FormatChip(
+                label: 'Week',
+                active: _calendarFormat == CalendarFormat.week,
+                primary: primary,
+                onTap: () =>
+                    setState(() => _calendarFormat = CalendarFormat.week),
+              ),
+              const Spacer(),
+              if (!isToday)
+                GestureDetector(
+                  onTap: _jumpToToday,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.today_rounded, size: 14, color: primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Today',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // ── Calendar ─────────────────────────────────────────────────────
         TableCalendar<Task>(
           firstDay: DateTime(2020),
           lastDay: DateTime(2100),
           focusedDay: focusedMonth,
           selectedDayPredicate: (day) => day.isSameDay(selectedDate),
+          calendarFormat: _calendarFormat,
+          onFormatChanged: (format) =>
+              setState(() => _calendarFormat = format),
           onDaySelected: (selected, focused) {
             ref.read(selectedDateProvider.notifier).state = selected;
             ref.read(focusedMonthProvider.notifier).state = focused;
@@ -80,50 +157,49 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
           onPageChanged: (focused) {
             ref.read(focusedMonthProvider.notifier).state = focused;
           },
-          calendarFormat: CalendarFormat.month,
           startingDayOfWeek: StartingDayOfWeek.monday,
-          headerStyle: const HeaderStyle(
+          headerStyle: HeaderStyle(
             formatButtonVisible: false,
             titleCentered: true,
-            titleTextStyle: TextStyle(
+            titleTextStyle: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
-            leftChevronIcon:
-                Icon(Icons.chevron_left_rounded, color: AppColors.textSecondary),
-            rightChevronIcon:
-                Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            leftChevronIcon: Icon(Icons.chevron_left_rounded,
+                color: primary),
+            rightChevronIcon: Icon(Icons.chevron_right_rounded,
+                color: primary),
           ),
-          daysOfWeekStyle: const DaysOfWeekStyle(
+          daysOfWeekStyle: DaysOfWeekStyle(
             weekdayStyle: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textTertiary,
+              fontWeight: FontWeight.w600,
+              color: primary.withValues(alpha: 0.7),
             ),
             weekendStyle: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textTertiary,
+              fontWeight: FontWeight.w600,
+              color: primary.withValues(alpha: 0.5),
             ),
           ),
           calendarStyle: CalendarStyle(
             todayDecoration: BoxDecoration(
               color: Colors.transparent,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 1.5),
+              border: Border.all(color: primary, width: 1.5),
             ),
-            todayTextStyle: const TextStyle(
+            todayTextStyle: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+              color: primary,
             ),
-            selectedDecoration: const BoxDecoration(
-              color: AppColors.primary,
+            selectedDecoration: BoxDecoration(
+              color: primary,
               shape: BoxShape.circle,
             ),
             selectedTextStyle: const TextStyle(
@@ -148,12 +224,13 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
               color: AppColors.textTertiary,
             ),
             markersMaxCount: 3,
-            markerDecoration: const BoxDecoration(
-              color: AppColors.primary,
+            markerDecoration: BoxDecoration(
+              color: primary,
               shape: BoxShape.circle,
             ),
             markerSize: 5,
             markersAnchor: 0.7,
+            rowDecoration: BoxDecoration(color: surfaceVariant.withValues(alpha: 0)),
           ),
           eventLoader: (day) {
             return monthTasks.where((t) => t.date.isSameDay(day)).toList();
@@ -171,7 +248,7 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
                       case Priority.high:
                         dotColor = AppColors.priorityHigh;
                       case Priority.medium:
-                        dotColor = AppColors.priorityMedium;
+                        dotColor = primary;
                       case Priority.low:
                         dotColor = AppColors.priorityLow;
                     }
@@ -190,32 +267,59 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
         ),
 
         const Divider(height: 1),
+
+        // ── Selected day header ───────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
           child: Row(
             children: [
-              Text(
-                selectedDate.formattedFullDate,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selectedDate.formattedWeekday,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: primary,
+                    ),
+                  ),
+                  Text(
+                    selectedDate.formattedDayMonth,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
               const Spacer(),
-              Text(
-                '${selectedDayTasks.length} tasks',
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12,
-                  color: AppColors.textTertiary,
+              if (selectedDayTasks.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${selectedDayTasks.length} task${selectedDayTasks.length == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: primary,
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
 
+        // ── Task list ─────────────────────────────────────────────────────
         Expanded(
           child: selectedDayTasks.isEmpty
               ? const EmptyState(
@@ -232,7 +336,7 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
                     children: [
                       Expanded(
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                           itemCount: selectedDayTasks.length,
                           itemBuilder: (_, i) {
                             final task = selectedDayTasks[i];
@@ -279,6 +383,52 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
     );
   }
 }
+
+// ── Format chip ───────────────────────────────────────────────────────────────
+
+class _FormatChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final Color primary;
+  final VoidCallback onTap;
+  const _FormatChip({
+    required this.label,
+    required this.active,
+    required this.primary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? primary : AppColors.divider,
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: active ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Batch action bar ─────────────────────────────────────────────────────────
 
 class _MonthlyBatchBar extends StatelessWidget {
   final int selectedCount;
@@ -332,7 +482,7 @@ class _MonthlyBatchBar extends StatelessWidget {
           TextButton(
             onPressed: onTomorrow,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
+              foregroundColor: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,

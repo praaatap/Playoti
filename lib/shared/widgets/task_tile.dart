@@ -44,6 +44,8 @@ class TaskTile extends ConsumerWidget {
       );
     }
 
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Slidable(
       startActionPane: ActionPane(
         motion: const DrawerMotion(),
@@ -56,7 +58,7 @@ class TaskTile extends ConsumerWidget {
                   .pushTaskToTomorrow(task.id);
               SnackbarUtils.showInfo(context, 'Moved to tomorrow');
             },
-            backgroundColor: AppColors.primary,
+            backgroundColor: primary,
             foregroundColor: Colors.white,
             icon: Icons.schedule_rounded,
             label: 'Tomorrow',
@@ -127,6 +129,7 @@ class _ExpandableTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final primary = Theme.of(context).colorScheme.primary;
     final categories = ref.watch(categoryNotifierProvider);
     final category = task.categoryId != null
         ? categories.where((c) => c.id == task.categoryId).firstOrNull
@@ -252,15 +255,14 @@ class _ExpandableTile extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (task.subtasks.isNotEmpty) ...[
-                      _SubtaskProgress(task: task),
-                    ],
+                    if (task.subtasks.isNotEmpty)
+                      _SubtaskProgress(task: task, primary: primary),
                     const SizedBox(width: 12),
                   ],
                 ),
                 // Expanded content
                 if (isExpanded)
-                  _ExpandedContent(task: task),
+                  _ExpandedContent(task: task, primary: primary),
               ],
             ),
           ),
@@ -288,12 +290,14 @@ class _ExpandableTile extends ConsumerWidget {
 
 class _ExpandedContent extends ConsumerWidget {
   final Task task;
-  const _ExpandedContent({required this.task});
+  final Color primary;
+  const _ExpandedContent({required this.task, required this.primary});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final surfaceVariant = Theme.of(context).colorScheme.secondaryContainer;
     return Container(
-      color: AppColors.surfaceVariant,
+      color: surfaceVariant.withValues(alpha: 0.5),
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 12),
       width: double.infinity,
       child: Column(
@@ -336,7 +340,7 @@ class _ExpandedContent extends ConsumerWidget {
                             : Icons.radio_button_unchecked_rounded,
                         size: 18,
                         color: sub.isCompleted
-                            ? AppColors.primary
+                            ? primary
                             : AppColors.textTertiary,
                       ),
                       const SizedBox(width: 8),
@@ -411,7 +415,8 @@ void _toggleSubtaskAtIndex(WidgetRef ref, Task task, int index) {
 
 class _SubtaskProgress extends StatelessWidget {
   final Task task;
-  const _SubtaskProgress({required this.task});
+  final Color primary;
+  const _SubtaskProgress({required this.task, required this.primary});
 
   @override
   Widget build(BuildContext context) {
@@ -438,7 +443,7 @@ class _SubtaskProgress extends StatelessWidget {
               value: pct,
               minHeight: 3,
               backgroundColor: AppColors.divider,
-              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation(primary),
             ),
           ),
         ),
@@ -473,26 +478,28 @@ class _SelectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final priorityColor = _priorityColor(task.priority);
     return GestureDetector(
       onTap: onToggle,
-      child: Opacity(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
         opacity: isSelected ? 1.0 : 0.85,
         child: Container(
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.06)
+                ? primary.withValues(alpha: 0.06)
                 : AppColors.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.4)
+                  ? primary.withValues(alpha: 0.4)
                   : AppColors.divider,
             ),
           ),
           child: Row(
             children: [
-              // Selection circle (replaces priority stripe)
+              // Selection circle
               Container(
                 width: 44,
                 height: 56,
@@ -503,11 +510,9 @@ class _SelectionTile extends StatelessWidget {
                   height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected ? AppColors.primary : Colors.transparent,
+                    color: isSelected ? primary : Colors.transparent,
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textTertiary,
+                      color: isSelected ? primary : AppColors.textTertiary,
                       width: 1.5,
                     ),
                   ),
