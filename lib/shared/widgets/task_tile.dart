@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -9,6 +10,7 @@ import '../../data/models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../core/utils/snackbar_utils.dart';
+import '../../providers/focus_timer_provider.dart';
 import 'category_dot.dart';
 
 class TaskTile extends ConsumerWidget {
@@ -177,31 +179,12 @@ class _ExpandableTile extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     // Checkbox
-                    GestureDetector(
+                    _BurstCheckbox(
+                      isCompleted: task.isCompleted,
+                      color: priorityColor,
                       onTap: () => ref
                           .read(taskNotifierProvider.notifier)
                           .toggleComplete(task.id),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: task.isCompleted
-                              ? priorityColor
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: task.isCompleted
-                                ? priorityColor
-                                : AppColors.textTertiary,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: task.isCompleted
-                            ? const Icon(Icons.check_rounded,
-                                size: 15, color: Colors.white)
-                            : null,
-                      ),
                     ),
                     const SizedBox(width: 12),
                     // Content
@@ -369,6 +352,23 @@ class _ExpandedContent extends ConsumerWidget {
           const SizedBox(height: 8),
           Row(
             children: [
+              if (!task.isCompleted) ...[
+                TextButton.icon(
+                  icon: const Icon(Icons.timer_rounded, size: 15),
+                  label: const Text('Focus',
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: primary,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () =>
+                      ref.read(focusTimerProvider.notifier).startFocus(task),
+                ),
+                const SizedBox(width: 4),
+              ],
               TextButton.icon(
                 icon: const Icon(Icons.edit_outlined, size: 15),
                 label: const Text('Edit',
@@ -450,6 +450,118 @@ class _SubtaskProgress extends StatelessWidget {
       ],
     );
   }
+}
+
+class _BurstCheckbox extends StatefulWidget {
+  final bool isCompleted;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _BurstCheckbox({
+    required this.isCompleted,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_BurstCheckbox> createState() => _BurstCheckboxState();
+}
+
+class _BurstCheckboxState extends State<_BurstCheckbox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_BurstCheckbox old) {
+    super.didUpdateWidget(old);
+    if (!old.isCompleted && widget.isCompleted) {
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: _ctrl,
+              builder: (context, child) => CustomPaint(
+                painter: _BurstPainter(_ctrl.value, widget.color),
+                size: const Size(44, 44),
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: widget.isCompleted
+                    ? widget.color
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: widget.isCompleted
+                      ? widget.color
+                      : AppColors.textTertiary,
+                  width: 1.5,
+                ),
+              ),
+              child: widget.isCompleted
+                  ? const Icon(Icons.check_rounded,
+                      size: 15, color: Colors.white)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BurstPainter extends CustomPainter {
+  final double t;
+  final Color color;
+  static const _count = 6;
+
+  _BurstPainter(this.t, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t <= 0 || t >= 1) return;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = Curves.easeOut.transform(t) * 18;
+    final opacity = (1.0 - Curves.easeIn.transform(t)).clamp(0.0, 1.0);
+    final paint = Paint()..color = color.withValues(alpha: opacity);
+    for (int i = 0; i < _count; i++) {
+      final angle = (i / _count) * 2 * pi;
+      final pos = center + Offset(cos(angle) * radius, sin(angle) * radius);
+      canvas.drawCircle(pos, 2.5, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BurstPainter old) => old.t != t || old.color != color;
 }
 
 class _SelectionTile extends StatelessWidget {

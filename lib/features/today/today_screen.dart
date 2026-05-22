@@ -97,12 +97,39 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     };
   }
 
+  int _computeStreak(List<Task> allTasks) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final completionDates = <String>{};
+    for (final t in allTasks) {
+      if (t.completedAt != null) {
+        final d = t.completedAt!;
+        completionDates.add('${d.year}-${d.month}-${d.day}');
+      }
+    }
+    int streak = 0;
+    for (int d = 0; d < 365; d++) {
+      final date = today.subtract(Duration(days: d));
+      final key = '${date.year}-${date.month}-${date.day}';
+      if (completionDates.contains(key)) {
+        streak++;
+      } else if (d == 0) {
+        continue; // no completions today yet — check yesterday's streak
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
     final tasks = ref.watch(tasksForDateProvider(today.dateOnly));
     final overdueTasks = ref.watch(overdueTasksProvider);
     final settings = ref.watch(settingsNotifierProvider);
+    final allTasks = ref.watch(taskNotifierProvider);
+    final streak = _computeStreak(allTasks);
 
     final activeTasks = tasks.where((t) => !t.isCompleted).toList();
     final completedTasks = tasks.where((t) => t.isCompleted).toList();
@@ -146,6 +173,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                             date: today.formattedFullDate,
                             totalTasks: tasks.length,
                             completedTasks: completedTasks.length,
+                            streak: streak,
                           ),
                         );
                       }),

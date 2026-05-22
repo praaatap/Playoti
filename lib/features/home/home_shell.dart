@@ -1,10 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/router/route_names.dart';
+import '../../providers/task_provider.dart';
+import '../focus/focus_timer_overlay.dart';
 
 class HomeShell extends StatelessWidget {
   final Widget child;
@@ -44,7 +47,12 @@ class HomeShell extends StatelessWidget {
           }
         },
       ),
-      body: child,
+      body: Stack(
+        children: [
+          child,
+          const FocusTimerOverlay(),
+        ],
+      ),
       floatingActionButton: _CupertinoFAB(
         color: primary,
         onPressed: () => index == 3
@@ -212,7 +220,7 @@ class _CupertinoFAB extends StatelessWidget {
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 
-class _CupertinoBottomNav extends StatelessWidget {
+class _CupertinoBottomNav extends ConsumerWidget {
   final int currentIndex;
   const _CupertinoBottomNav({required this.currentIndex});
 
@@ -228,10 +236,11 @@ class _CupertinoBottomNav extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final primary = Theme.of(context).colorScheme.primary;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final overdueCount = ref.watch(overdueTasksProvider).length;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -270,18 +279,54 @@ class _CupertinoBottomNav extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 180),
-                                  transitionBuilder: (child, anim) =>
-                                      ScaleTransition(scale: anim, child: child),
-                                  child: Icon(
-                                    isActive ? iconOn : iconOff,
-                                    key: ValueKey(isActive),
-                                    size: isActive ? 26 : 24,
-                                    color: isActive
-                                        ? primary
-                                        : AppColors.textTertiary,
-                                  ),
+                                Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 180),
+                                      transitionBuilder: (child, anim) =>
+                                          ScaleTransition(
+                                              scale: anim, child: child),
+                                      child: Icon(
+                                        isActive ? iconOn : iconOff,
+                                        key: ValueKey(isActive),
+                                        size: isActive ? 26 : 24,
+                                        color: isActive
+                                            ? primary
+                                            : AppColors.textTertiary,
+                                      ),
+                                    ),
+                                    if (i == 0 && overdueCount > 0)
+                                      Positioned(
+                                        top: -4,
+                                        right: -8,
+                                        child: Container(
+                                          constraints: const BoxConstraints(
+                                              minWidth: 15),
+                                          height: 15,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 3.5),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.error,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            overdueCount > 9
+                                                ? '9+'
+                                                : '$overdueCount',
+                                            style: const TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontSize: 8.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 3),
                                 AnimatedDefaultTextStyle(

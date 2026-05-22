@@ -6,6 +6,7 @@ class TodayHeader extends StatelessWidget {
   final String date;
   final int totalTasks;
   final int completedTasks;
+  final int streak;
 
   const TodayHeader({
     super.key,
@@ -13,6 +14,7 @@ class TodayHeader extends StatelessWidget {
     required this.date,
     required this.totalTasks,
     required this.completedTasks,
+    this.streak = 0,
   });
 
   String _motivationalLine(int total, int completed) {
@@ -70,6 +72,10 @@ class TodayHeader extends StatelessWidget {
                       color: allDone ? AppColors.success : primary,
                     ),
                   ),
+                  if (streak > 1) ...[
+                    const SizedBox(height: 8),
+                    _StreakBadge(streak: streak),
+                  ],
                 ],
               ),
             ),
@@ -95,6 +101,40 @@ class TodayHeader extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _StreakBadge extends StatelessWidget {
+  final int streak;
+  const _StreakBadge({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    const fire = Color(0xFFFF6B00);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: fire.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: fire.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🔥', style: TextStyle(fontSize: 13)),
+          const SizedBox(width: 5),
+          Text(
+            '$streak day streak',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: fire,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
